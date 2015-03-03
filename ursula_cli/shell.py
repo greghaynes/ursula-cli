@@ -120,11 +120,16 @@ def main():
                         help='The playbook to run')
     parser.add_argument('--ursula-test', action='store_true', 
                         help='Test syntax for playbook')
+    parser.add_argument('--ursula-debug', action='store_true',
+                        help='Run this tool in debug mode')
     
     args, extra_args = parser.parse_known_args()
 
     try:
-        _initialize_logger()
+        log_level = logging.INFO
+        if args.ursula_debug:
+            log_level = logging.DEBUG
+        _initialize_logger(log_level)
         _check_ansible_version()
         run(args, extra_args)
     except Exception as e:
