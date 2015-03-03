@@ -24,6 +24,7 @@ import sys
 LOG = logging.getLogger(__name__)
 ANSIBLE_VERSION = '1.7.2-bbg'
 
+
 def _initialize_logger(level=logging.DEBUG, logfile=None):
     global LOG
     LOG.setLevel(level)
@@ -54,6 +55,7 @@ def _append_envvar(key, value):
 
 
 def _set_default_env():
+    _append_envvar('PYTHONUNBUFFERED','1')  # needed in order to stream output
     _append_envvar('ANSIBLE_FORCE_COLOR', 'yes')
     _append_envvar('ANSIBLE_SSH_ARGS', '-o ControlMaster=auto')
     _append_envvar("ANSIBLE_SSH_ARGS",
@@ -79,12 +81,12 @@ def _run_ansible(inventory, playbook, user='root', module_path='./library', sudo
     command += extra_args
 
     LOG.debug("Running command: %s", " ".join(command))
-    proc = subprocess.Popen(command, env=os.environ.copy(),
-                            stdout=subprocess.PIPE)
-    while proc.poll() is None:
-        output = proc.stdout.readline()
-        print output,
-        sys.stdout.flush()
+    proc = subprocess.Popen(command, env=os.environ.copy(), shell=False,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT)
+
+    for line in iter(proc.stdout.readline, b''):
+        print line.rstrip()
 
 
 def run(args, extra_args):
