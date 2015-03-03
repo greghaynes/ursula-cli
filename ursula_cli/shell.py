@@ -80,7 +80,8 @@ def _run_ansible(inventory, playbook, user='root', module_path='./library',
         command.append("--sudo")
     command += extra_args
 
-    LOG.debug("Running command: %s", " ".join(command))
+    LOG.debug("Running command: %s with environment: %s", 
+              " ".join(command), os.environ)
     proc = subprocess.Popen(command, env=os.environ.copy(), shell=False,
                             stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT)
@@ -99,8 +100,11 @@ def run(args, extra_args):
     if not os.path.exists(inventory) or not os.path.isfile(inventory):
         raise Exception("Inventory file '%s' does not exist", inventory)
 
-    if args.forward:
+    if args.ursula_forward:
         _append_envvar("ANSIBLE_SSH_ARGS", "-o ForwardAgent=yes")
+
+    if args.ursula_test:
+        extra_args += ['--syntax-check', '--list-tasks']
 
     _run_ansible(inventory, args.playbook, extra_args=extra_args)
 
@@ -109,10 +113,14 @@ def main():
     parser = argparse.ArgumentParser(description='A CLI wrapper for ansible')
     parser.add_argument('environment', help='The environment you want to use')
     parser.add_argument('playbook', help='The playbook to run')
-    parser.add_argument('-f', '--forward', help='Forward SSH agent')
-    parser.add_argument('-t', '--test', help='Test syntax for playbook')
-    parser.add_argument('-x', '--extra-args', help='Additional arguments '
-                                                   'for ansible')
+
+    # any args should be namespaced --ursula-$SOMETHING so as not to conflict
+    # with ansible-playbook's command line parameters
+    parser.add_argument('--ursula-forward', action='store_true', 
+                        help='The playbook to run')
+    parser.add_argument('--ursula-test', action='store_true', 
+                        help='Test syntax for playbook')
+    
     args, extra_args = parser.parse_known_args()
 
     try:
