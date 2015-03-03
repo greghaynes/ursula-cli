@@ -42,9 +42,9 @@ def _check_ansible_version():
     version = version_output.split(' ')[1]
     if not version == ANSIBLE_VERSION:
         raise Exception("You are not using ansible-playbook '%s'. "
-            "Current required version is: '%s'. You may install "
-            "the correct version with 'pip install -U -r "
-            "requirements.txt'" % (version, ANSIBLE_VERSION))
+                        "Current required version is: '%s'. You may install "
+                        "the correct version with 'pip install -U -r "
+                        "requirements.txt'" % (version, ANSIBLE_VERSION))
 
 
 def _append_envvar(key, value):
@@ -55,7 +55,7 @@ def _append_envvar(key, value):
 
 
 def _set_default_env():
-    _append_envvar('PYTHONUNBUFFERED','1')  # needed in order to stream output
+    _append_envvar('PYTHONUNBUFFERED', '1')  # needed in order to stream output
     _append_envvar('ANSIBLE_FORCE_COLOR', 'yes')
     _append_envvar('ANSIBLE_SSH_ARGS', '-o ControlMaster=auto')
     _append_envvar("ANSIBLE_SSH_ARGS",
@@ -63,8 +63,8 @@ def _set_default_env():
     _append_envvar("ANSIBLE_SSH_ARGS", "-o ControlPersist=300")
 
 
-def _run_ansible(inventory, playbook, user='root', module_path='./library', sudo=False,
-                extra_args=[]):
+def _run_ansible(inventory, playbook, user='root', module_path='./library',
+                 sudo=False, extra_args=[]):
     command = [
         'ansible-playbook',
         '--inventory-file',
