@@ -62,7 +62,6 @@ def _set_default_env():
                    "-o ControlPath=~/.ssh/controlmasters/u-%r@%h:%p")
     _append_envvar("ANSIBLE_SSH_ARGS", "-o ControlPersist=300")
 
-
 def _run_ansible(inventory, playbook, user='root', module_path='./library',
                  sudo=False, extra_args=[]):
     command = [
@@ -80,7 +79,7 @@ def _run_ansible(inventory, playbook, user='root', module_path='./library',
         command.append("--sudo")
     command += extra_args
 
-    LOG.debug("Running command: %s with environment: %s", 
+    LOG.debug("Running command: %s with environment: %s",
               " ".join(command), os.environ)
     proc = subprocess.Popen(command, env=os.environ.copy(), shell=False,
                             stdout=subprocess.PIPE,
@@ -100,6 +99,10 @@ def run(args, extra_args):
     if not os.path.exists(inventory) or not os.path.isfile(inventory):
         raise Exception("Inventory file '%s' does not exist", inventory)
 
+    ansible_var_defaults_file = "%s/../defaults.yml" % args.environment
+    if os.path.isfile(ansible_var_defaults_file):
+        _append_envvar("ANSIBLE_VAR_DEFAULTS_FILE", ansible_var_defaults_file)
+
     if args.ursula_forward:
         _append_envvar("ANSIBLE_SSH_ARGS", "-o ForwardAgent=yes")
 
@@ -116,13 +119,13 @@ def main():
 
     # any args should be namespaced --ursula-$SOMETHING so as not to conflict
     # with ansible-playbook's command line parameters
-    parser.add_argument('--ursula-forward', action='store_true', 
+    parser.add_argument('--ursula-forward', action='store_true',
                         help='The playbook to run')
-    parser.add_argument('--ursula-test', action='store_true', 
+    parser.add_argument('--ursula-test', action='store_true',
                         help='Test syntax for playbook')
     parser.add_argument('--ursula-debug', action='store_true',
                         help='Run this tool in debug mode')
-    
+
     args, extra_args = parser.parse_known_args()
 
     try:
