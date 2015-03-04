@@ -20,6 +20,7 @@ import logging
 import os
 import subprocess
 import sys
+import yaml
 
 LOG = logging.getLogger(__name__)
 ANSIBLE_VERSION = '1.7.2-bbg'
@@ -51,6 +52,9 @@ def _append_envvar(key, value):
     if key in os.environ:
         os.environ[key] = "%s %s" % (os.environ[key], value)
     else:
+        _set_envvar(key, value)
+
+def _set_envvar(key, value):
         os.environ[key] = value
 
 
@@ -91,6 +95,51 @@ def _run_ansible(inventory, playbook, user='root', module_path='./library',
     proc.communicate()[0]
     return proc.returncode
 
+def _write_vagrant_ssh_config(environment,boxes):
+    ssh_config_file =".vagrant/%s.ssh" % os.path.basename(environment)
+    f = open(ssh_config_file,'w')
+    for box in boxes:
+        command = [
+          'vagrant',
+          'ssh-config',
+          box
+        ]
+        proc = subprocess.Popen(command, env=os.environ.copy(),
+                                shell=False,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT)
+
+        for line in iter(proc.stdout.readline, b''):
+            f.write("%s\n" % line.rstrip())
+    f.close()
+    _append_envvar("ANSIBLE_SSH_ARGS", "-F %s" % ssh_config_file)
+
+def _run_vagrant(environment):
+    vagrant_config_file = "%s/vagrant.yml" % environment
+
+    if os.path.isfile(vagrant_config_file):
+        _set_envvar("SETTINGS_FILE", vagrant_config_file)
+        vagrant_config = yaml.load(open(vagrant_config_file,'r'))
+    else:
+        vagrant_config = yaml.load(open('vagrant.yml','r'))
+
+    _write_vagrant_ssh_config(environment,vagrant_config['vms'].keys())
+
+    command = [
+        'vagrant',
+        'up',
+        '--no-provision',
+    ] + vagrant_config['vms'].keys()
+
+    LOG.debug("Running command: %s", " ".join(command))
+    print "Running command: %s %s" % (" ".join(command), 'eggs') #os.environ)
+    proc = subprocess.Popen(command, env=os.environ.copy(),
+                            shell=False,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT)
+
+    for line in iter(proc.stdout.readline, b''):
+        print line.rstrip()
 
 def run(args, extra_args):
     _set_default_env()
@@ -112,9 +161,11 @@ def run(args, extra_args):
     if args.ursula_test:
         extra_args += ['--syntax-check', '--list-tasks']
 
+    if args.vagrant:
+        _run_vagrant(environment=args.environment)
+
     rc = _run_ansible(inventory, args.playbook, extra_args=extra_args)
     return rc
-
 
 def main():
     parser = argparse.ArgumentParser(description='A CLI wrapper for ansible')
@@ -129,6 +180,8 @@ def main():
                         help='Test syntax for playbook')
     parser.add_argument('--ursula-debug', action='store_true',
                         help='Run this tool in debug mode')
+    parser.add_argument('--vagrant', action='store_true',
+                        help='Provision environment in vagrant')
 
     args, extra_args = parser.parse_known_args()
 
