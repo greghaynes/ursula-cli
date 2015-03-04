@@ -54,6 +54,7 @@ def _append_envvar(key, value):
     else:
         _set_envvar(key, value)
 
+
 def _set_envvar(key, value):
         os.environ[key] = value
 
@@ -65,6 +66,7 @@ def _set_default_env():
     _append_envvar("ANSIBLE_SSH_ARGS",
                    "-o ControlPath=~/.ssh/controlmasters/u-%r@%h:%p")
     _append_envvar("ANSIBLE_SSH_ARGS", "-o ControlPersist=300")
+
 
 def _run_ansible(inventory, playbook, user='root', module_path='./library',
                  sudo=False, extra_args=[]):
@@ -91,13 +93,14 @@ def _run_ansible(inventory, playbook, user='root', module_path='./library',
 
     for line in iter(proc.stdout.readline, b''):
         print line.rstrip()
-    
+
     proc.communicate()[0]
     return proc.returncode
 
-def _write_vagrant_ssh_config(environment,boxes):
-    ssh_config_file =".vagrant/%s.ssh" % os.path.basename(environment)
-    f = open(ssh_config_file,'w')
+
+def _write_vagrant_ssh_config(environment, boxes):
+    ssh_config_file = ".vagrant/%s.ssh" % os.path.basename(environment)
+    f = open(ssh_config_file, 'w')
     for box in boxes:
         command = [
           'vagrant',
@@ -114,16 +117,23 @@ def _write_vagrant_ssh_config(environment,boxes):
     f.close()
     _append_envvar("ANSIBLE_SSH_ARGS", "-F %s" % ssh_config_file)
 
+
 def _run_vagrant(environment):
     vagrant_config_file = "%s/vagrant.yml" % environment
 
+    print "**************************************************"
+    print "Ursula <3 Vagrant"
+    print "To interact with your environment via Vagrant set:"
+    print "$ export SETTINGS_FILE=%s" % vagrant_config_file
+    print "**************************************************"
+
     if os.path.isfile(vagrant_config_file):
         _set_envvar("SETTINGS_FILE", vagrant_config_file)
-        vagrant_config = yaml.load(open(vagrant_config_file,'r'))
+        vagrant_config = yaml.load(open(vagrant_config_file, 'r'))
     else:
-        vagrant_config = yaml.load(open('vagrant.yml','r'))
+        vagrant_config = yaml.load(open('vagrant.yml', 'r'))
 
-    _write_vagrant_ssh_config(environment,vagrant_config['vms'].keys())
+    _write_vagrant_ssh_config(environment, vagrant_config['vms'].keys())
 
     command = [
         'vagrant',
@@ -131,8 +141,7 @@ def _run_vagrant(environment):
         '--no-provision',
     ] + vagrant_config['vms'].keys()
 
-    LOG.debug("Running command: %s", " ".join(command))
-    print "Running command: %s %s" % (" ".join(command), 'eggs') #os.environ)
+    LOG.debug("Running command: %s\nEnvs:%s", " ".join(command), os.environ)
     proc = subprocess.Popen(command, env=os.environ.copy(),
                             shell=False,
                             stdout=subprocess.PIPE,
@@ -140,6 +149,7 @@ def _run_vagrant(environment):
 
     for line in iter(proc.stdout.readline, b''):
         print line.rstrip()
+
 
 def run(args, extra_args):
     _set_default_env()
@@ -166,6 +176,7 @@ def run(args, extra_args):
 
     rc = _run_ansible(inventory, args.playbook, extra_args=extra_args)
     return rc
+
 
 def main():
     parser = argparse.ArgumentParser(description='A CLI wrapper for ansible')
