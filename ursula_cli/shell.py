@@ -62,6 +62,7 @@ def _set_default_env():
                    "-o ControlPath=~/.ssh/controlmasters/u-%r@%h:%p")
     _append_envvar("ANSIBLE_SSH_ARGS", "-o ControlPersist=300")
 
+
 def _run_ansible(inventory, playbook, user='root', module_path='./library',
                  sudo=False, extra_args=[]):
     command = [
@@ -87,7 +88,7 @@ def _run_ansible(inventory, playbook, user='root', module_path='./library',
 
     for line in iter(proc.stdout.readline, b''):
         print line.rstrip()
-    
+
     proc.communicate()[0]
     return proc.returncode
 
@@ -112,8 +113,16 @@ def run(args, extra_args):
     if args.ursula_test:
         extra_args += ['--syntax-check', '--list-tasks']
 
+    if args.pre:
+        for pre in args.pre.split(","):
+            _run_ansible(inventory, pre, extra_args=extra_args)
+
     rc = _run_ansible(inventory, args.playbook, extra_args=extra_args)
     return rc
+
+    if args.post:
+        for post in args.post.split(","):
+            _run_ansible(inventory, post, extra_args=extra_args)
 
 
 def main():
@@ -129,6 +138,10 @@ def main():
                         help='Test syntax for playbook')
     parser.add_argument('--ursula-debug', action='store_true',
                         help='Run this tool in debug mode')
+    parser.add_argument('--pre',
+                        help='comma seperate list of playbooks to run before')
+    parser.add_argument('--post',
+                        help='comma seperate list of playbooks to run after')
 
     args, extra_args = parser.parse_known_args()
 
