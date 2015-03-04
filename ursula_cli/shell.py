@@ -87,6 +87,9 @@ def _run_ansible(inventory, playbook, user='root', module_path='./library',
 
     for line in iter(proc.stdout.readline, b''):
         print line.rstrip()
+    
+    proc.communicate()[0]
+    return proc.returncode
 
 
 def run(args, extra_args):
@@ -109,7 +112,8 @@ def run(args, extra_args):
     if args.ursula_test:
         extra_args += ['--syntax-check', '--list-tasks']
 
-    _run_ansible(inventory, args.playbook, extra_args=extra_args)
+    rc = _run_ansible(inventory, args.playbook, extra_args=extra_args)
+    return rc
 
 
 def main():
@@ -134,7 +138,8 @@ def main():
             log_level = logging.DEBUG
         _initialize_logger(log_level)
         _check_ansible_version()
-        run(args, extra_args)
+        rc = run(args, extra_args)
+        sys.exit(rc)
     except Exception as e:
         LOG.error(e)
         sys.exit(-1)
