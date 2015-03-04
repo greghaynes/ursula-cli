@@ -139,9 +139,9 @@ def main():
     parser.add_argument('--ursula-debug', action='store_true',
                         help='Run this tool in debug mode')
     parser.add_argument('--pre',
-                        help='comma seperate list of playbooks to run before')
+                        help='comma seperated list of playbooks to run before')
     parser.add_argument('--post',
-                        help='comma seperate list of playbooks to run after')
+                        help='comma seperated list of playbooks to run after')
 
     args, extra_args = parser.parse_known_args()
 
