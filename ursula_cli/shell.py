@@ -98,7 +98,7 @@ def _run_ansible(inventory, playbook, user='root', module_path='./library',
     return proc.returncode
 
 
-def _write_vagrant_ssh_config(environment, boxes):
+def _vagrant_ssh_config(environment, boxes):
     ssh_config_file = ".vagrant/%s.ssh" % os.path.basename(environment)
     f = open(ssh_config_file, 'w')
     for box in boxes:
@@ -114,18 +114,20 @@ def _write_vagrant_ssh_config(environment, boxes):
 
         for line in iter(proc.stdout.readline, b''):
             f.write("%s\n" % line.rstrip())
+
+        if proc.returncode:
+            raise Exception("Failed to write SSH config to %s"
+                            % (ssh_config_file))
+            return proc.returncode
+
     f.close()
     _append_envvar("ANSIBLE_SSH_ARGS", "-F %s" % ssh_config_file)
+
+    return 0
 
 
 def _run_vagrant(environment):
     vagrant_config_file = "%s/vagrant.yml" % environment
-
-    print "**************************************************"
-    print "Ursula <3 Vagrant"
-    print "To interact with your environment via Vagrant set:"
-    print "$ export SETTINGS_FILE=%s" % vagrant_config_file
-    print "**************************************************"
 
     if os.path.isfile(vagrant_config_file):
         _set_envvar("SETTINGS_FILE", vagrant_config_file)
@@ -133,7 +135,11 @@ def _run_vagrant(environment):
     else:
         vagrant_config = yaml.load(open('vagrant.yml', 'r'))
 
-    _write_vagrant_ssh_config(environment, vagrant_config['vms'].keys())
+    vms = vagrant_config['vms'].keys()
+
+    rc = _vagrant_ssh_config(environment, vms)
+    if rc:
+        return rc
 
     command = [
         'vagrant',
@@ -149,6 +155,19 @@ def _run_vagrant(environment):
 
     for line in iter(proc.stdout.readline, b''):
         print line.rstrip()
+
+    if proc.returncode:
+        raise Exception("Failed to run %s with environment: %s"
+                        % " ".join(command), os.environ)
+        return proc.returncode
+    else:
+        print "**************************************************"
+        print "Ursula <3 Vagrant"
+        print "To interact with your environment via Vagrant set:"
+        print "$ export SETTINGS_FILE=%s" % vagrant_config_file
+        print "**************************************************"
+
+    return 0
 
 
 def run(args, extra_args):
@@ -172,7 +191,9 @@ def run(args, extra_args):
         extra_args += ['--syntax-check', '--list-tasks']
 
     if args.vagrant:
-        _run_vagrant(environment=args.environment)
+        rc = _run_vagrant(environment=args.environment)
+        if rc:
+            return rc
 
     rc = _run_ansible(inventory, args.playbook, extra_args=extra_args)
     return rc
