@@ -36,9 +36,14 @@ def _initialize_logger(level=logging.DEBUG, logfile=None):
 
 
 def _check_ansible_version():
-    version_output = subprocess.check_output(
-        ["ansible-playbook --version"], shell=True)
-    version_output = version_output.split('\n')[0]
+    process = subprocess.Popen(
+        ["ansible-playbook --version"], shell=True,
+        stdout=subprocess.PIPE)
+    output, _ = process.communicate()
+    retcode = process.poll()
+    if retcode:
+        raise Exception("Error discovering ansible version")
+    version_output = output.split('\n')[0]
     version = version_output.split(' ')[1]
     if not version == ANSIBLE_VERSION:
         raise Exception("You are not using ansible-playbook '%s'. "
