@@ -107,9 +107,14 @@ def run(args, extra_args):
     if not os.path.exists(inventory) or not os.path.isfile(inventory):
         raise Exception("Inventory file '%s' does not exist", inventory)
 
-    ansible_var_defaults_file = "%s/../defaults.yml" % args.environment
+    ansible_var_defaults_file = os.path.join(args.environment,
+                                             '../defaults.yml')
     if os.path.isfile(ansible_var_defaults_file):
         _append_envvar("ANSIBLE_VAR_DEFAULTS_FILE", ansible_var_defaults_file)
+
+    ansible_ssh_config_file = os.path.join(args.environment, 'ssh_config')
+    if os.path.isfile(ansible_ssh_config_file):
+        _append_envvar("ANSIBLE_SSH_ARGS", "-F %s" % ansible_ssh_config_file)
 
     if args.ursula_forward:
         _append_envvar("ANSIBLE_SSH_ARGS", "-o ForwardAgent=yes")
