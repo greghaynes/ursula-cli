@@ -122,6 +122,9 @@ def run(args, extra_args):
     if args.ursula_test:
         extra_args += ['--syntax-check', '--list-tasks']
 
+    if args.usrula_debug:
+        extra_args += ['-vvvv']
+
     rc = _run_ansible(inventory, args.playbook, extra_args=extra_args)
     return rc
 
